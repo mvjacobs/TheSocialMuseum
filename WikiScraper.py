@@ -6,7 +6,13 @@ import requests, json, urlparse, urllib2
 
 
 def main():
-    # scrape wikipedia page with a list of all museums in the Netherlands
+    """Main function
+    The script starts here.
+    Scrape wikipedia page with a list of all museums in the Netherlands
+    Prerequisites:
+    - create a "/data" folder
+    - ensure a stable internet connection
+    """
     entities_nl = get_entities('http://nl.wikipedia.org/wiki/Lijst_van_musea_in_Nederland',
                                '//div[@id="bodyContent"]/div[@id="mw-content-text"]'
                                '/h3/following-sibling::ul/li/a[not(@rel="nofollow")]/@href')
@@ -18,6 +24,11 @@ def main():
 
 
 def get_wiki_title(wiki_url):
+    """Get Wiki Title
+    Tries to access the wikipedia page of a given url
+    If the page does not yet exits, return the title element from the URL
+    If the page exists, return the header H1 name
+    """
     museum_page = requests.get('http://nl.wikipedia.org' + wiki_url)
     museum_tree = html.fromstring(museum_page.text)
     museum_entity = museum_tree.xpath('//h1[@id="firstHeading"]/text()')
@@ -30,19 +41,28 @@ def get_wiki_title(wiki_url):
 
 
 def check_blacklist(wiki_title):
+    """Check blacklist
+    Returns True if the given title exists in the blacklist
+    """
     blacklist = [line.strip() for line in open('config/blacklist.cfg')]
     return wiki_title in blacklist
 
 
 def get_entities(wiki_page, xpath):
-    # scrape wikipedia page with a list of all museums in the Netherlands
+    """Get wikipedia entities
+    Scrape HTML page using an URL and xpath query
+    """
     page = requests.get(wiki_page)
     tree = html.fromstring(page.text)
     return tree.xpath(xpath)
 
 
 def get_geo_data(museum_title):
-    # get geo information for museum
+    """Get geodata
+    Get geo information for a museum
+    Uses the google maps API - https://developers.google.com/maps/
+    Beware of the daily request limit
+    """
     geo_url = "https://maps.googleapis.com/maps/api/geocode/json?address=%s" % museum_title
     geo_response = urllib2.urlopen(geo_url)
     geo_jsongeocode = geo_response.read()
@@ -50,9 +70,11 @@ def get_geo_data(museum_title):
 
 
 def get_dbpedia_data(museum_title):
+    """Get additional dbpedia data
+    Use the dutch Dbpedia to get additional information about a museum
+    Uses SPARQL with the DBPedia endpoint to query for museums
+    """
     dbpedia_page = 'http://nl.dbpedia.org/resource/' + museum_title
-
-    # Get dbpedia properties for museum
     sparql = SPARQLWrapper("http://nl.dbpedia.org/sparql")
     query = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " \
             "SELECT * WHERE { <%s> ?property ?entity }" % dbpedia_page
@@ -63,15 +85,33 @@ def get_dbpedia_data(museum_title):
 
 
 def get_hashtag(museum_title):
+    """Get hashtag
+    GTransform a wikipedia museum entity into a hashtag
+    """
     return '#%s' % museum_title.replace('_', '')
 
 
-def create_collections(collection_name, collection):
+def create_collection(collection_name, collection):
+    """Create json collection
+    Create a json file from a given json array
+    """
     with open('data/%s.json' % collection_name, 'w') as outfile:
         json.dump(collection, outfile)
 
 
 def preprocess_entities(museums_urls):
+    """Preprocess entities
+    Prepocesses the entities from a given set of wikipedia URL's
+    Combines the function above to:
+    - find entities
+    - add geodata to entities
+    - add dbpedia information to entities
+    - filter duplicates
+    - filter blacklisted entities
+    - filter entities without geodata
+    Eventually, the enriched entities are processed into json files
+    and are put into the /data directory
+    """
     museum_titles = []
     museums = []
     hashtags = []
@@ -111,9 +151,9 @@ def preprocess_entities(museums_urls):
             failed += 1
             pass
 
-    create_collections('museums', museums)
-    create_collections('hashtags', hashtags)
-    create_collections('locations', locations)
+    create_collection('museums', museums)
+    create_collection('hashtags', hashtags)
+    create_collection('locations', locations)
 
     print "Total %s entities, %s succeeded, %s failed, %s duplicated, %s blacklisted, %s no geodata." \
           % (len(museums_urls), succeeded, failed, duplicated, blacklisted, nogeodata)
