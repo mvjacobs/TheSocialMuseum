@@ -94,7 +94,7 @@ def preprocess_entities(museums_urls):
                 print "[blacklisted] processed entity: %s" % museum_title
                 continue
             geo_data = get_geo_data(museum_title)
-            if geo_data['status'] == "ZERO_RESULTS":
+            if geo_data['status'] != "OK":
                 nogeodata += 1
                 print "[no geodata] processed entity: %s" % museum_title
                 continue
