@@ -6,6 +6,10 @@ from pymongo import MongoClient
 
 
 class SListener(StreamListener):
+    """Twitter Stream Listener
+    Source: https://github.com/alexhanna/hse-twitter/tree/master/bin
+    Edited to work with mongodb
+    """
     def __init__(self, api=None, fprefix='streamer', ou_type='json'):
         self.api = api
         self.counter = 0
@@ -15,7 +19,6 @@ class SListener(StreamListener):
         self.delout = open('data/delete.txt', 'a')
 
     def on_data(self, data):
-
         if 'in_reply_to_status' in data:
             self.on_status(data)
         elif 'delete' in data:
@@ -42,7 +45,7 @@ class SListener(StreamListener):
                 self.counter = 0
 
         time.sleep(0.5)
-        print json.loads(status)['text']
+        print json.loads(status)['text'] + "\n"
 
         return
 
