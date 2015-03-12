@@ -87,16 +87,16 @@ def preprocess_entities(museums_urls):
             museum_title = get_wiki_title(url)
             if museum_title in museum_titles:
                 duplicated += 1
-                print "[duplicated] processed entity: %s" % museum_title
+                print "[duplicated] %s" % museum_title
                 continue
             if check_blacklist(museum_title):
                 blacklisted += 1
-                print "[blacklisted] processed entity: %s" % museum_title
+                print "[blacklisted] %s" % museum_title
                 continue
             geo_data = get_geo_data(museum_title)
             if geo_data['status'] != "OK":
                 nogeodata += 1
-                print "[no geodata] processed entity: %s" % museum_title
+                print "[no geodata] %s" % museum_title
                 continue
 
             # Add the results to the right collection
@@ -106,7 +106,7 @@ def preprocess_entities(museums_urls):
             museum_titles.append(museum_title)
 
             succeeded += 1
-            print "[success] processed entity: %s" % museum_title
+            print "[success] %s" % museum_title
         except:
             failed += 1
             pass
