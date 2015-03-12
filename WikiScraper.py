@@ -32,46 +32,50 @@ for url in museums_urls:
         museum_entity = museum_tree.xpath('//h1[@id="firstHeading"]/text()')
         museum_title = museum_entity[0].replace(' ', '_')
 
-        blacklist = [line.strip().lower() for line in open('config/blacklist.cfg')]
+        blacklist = [line.strip() for line in open('config/blacklist.cfg')]
 
-        if not(museum_title.lower() in blacklist) or not(museum_title.startswith('Bezig')):
-            dbpedia_page = 'http://nl.dbpedia.org/resource/' + museum_title
+        if museum_title.startswith(tuple(blacklist)): continue
 
-            # get geo information for museum
-            geo_url = "https://maps.googleapis.com/maps/api/geocode/json?address=%s" % museum_title
-            geo_response = urllib2.urlopen(geo_url)
-            geo_jsongeocode = geo_response.read()
-            geo_data = json.loads(geo_jsongeocode)
-            if geo_data['status'] == "ZERO_RESULTS":
-                continue
+        dbpedia_page = 'http://nl.dbpedia.org/resource/' + museum_title
 
-            # Get dbpedia properties for museum
-            sparql = SPARQLWrapper("http://nl.dbpedia.org/sparql")
-            query = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " \
-                    "SELECT * WHERE { <%s> ?property ?entity }" % dbpedia_page
-            sparql.setQuery(query)
-            sparql.setReturnFormat(JSON)
-            results = sparql.query().convert()
+        # get geo information for museum
+        geo_url = "https://maps.googleapis.com/maps/api/geocode/json?address=%s" % museum_title
+        geo_response = urllib2.urlopen(geo_url)
+        geo_jsongeocode = geo_response.read()
+        geo_data = json.loads(geo_jsongeocode)
+        if geo_data['status'] == "ZERO_RESULTS":
+            continue
 
-            # Add the results to the right collection
-            museums.append({'id': museum_title, 'dbpedia': results["results"]["bindings"]})
-            hashtags.append({'id': museum_title, 'hashtag': '#%s' % museum_title.replace('_', '')})
-            locations.append({'id': museum_title, 'location': geo_data["results"][0]})
+        # Get dbpedia properties for museum
+        sparql = SPARQLWrapper("http://nl.dbpedia.org/sparql")
+        query = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " \
+                "SELECT * WHERE { <%s> ?property ?entity }" % dbpedia_page
+        sparql.setQuery(query)
+        sparql.setReturnFormat(JSON)
+        results = sparql.query().convert()
 
-            succeeded += 1
-            print "processed entity: %s" % museum_title
+        # Add the results to the right collection
+        museums.append({'id': museum_title, 'dbpedia': results["results"]["bindings"]})
+        hashtags.append({'id': museum_title, 'hashtag': '#%s' % museum_title.replace('_', '')})
+        locations.append({'id': museum_title, 'location': geo_data["results"][0]})
+
+        succeeded += 1
+        print "processed entity: %s" % museum_title
     except:
         failed += 1
         pass
 
 with open('data/museums.json', 'w') as outfile:
-    json.dump(museums, outfile)
+    set_museums = set(museums)
+    json.dump(list(set_museums), outfile)
 
 with open('data/hashtags.json', 'w') as outfile:
-    json.dump(hashtags, outfile)
+    set_hashtags = set(hashtags)
+    json.dump(list(set_hashtags), outfile)
 
 with open('data/locations.json', 'w') as outfile:
-    json.dump(locations, outfile)
+    set_locations = set(locations)
+    json.dump(list(set_locations), outfile)
 
 
 print "Total %s entities, %s succeeded, %s failed." % (failed+succeeded, succeeded, failed)
