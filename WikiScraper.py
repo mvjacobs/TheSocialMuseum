@@ -13,7 +13,7 @@ def main():
     entities_adam = get_entities('http://nl.wikipedia.org/wiki/Lijst_van_musea_in_Amsterdam',
                                  '//div[@id="bodyContent"]/div[@id="mw-content-text"]'
                                  '/ul[1]/li/a[not(@rel="nofollow")]/@href')
-    museums_urls = entities_nl + entities_adam
+    museums_urls = entities_adam + entities_nl
     preprocess_entities(museums_urls)
 
 
@@ -31,7 +31,7 @@ def get_wiki_title(wiki_url):
 
 def check_blacklist(wiki_title):
     blacklist = [line.strip() for line in open('config/blacklist.cfg')]
-    return wiki_title.startswith(tuple(blacklist))
+    return wiki_title in blacklist
 
 
 def get_entities(wiki_page, xpath):
@@ -66,42 +66,47 @@ def get_hashtag(museum_title):
     return '#%s' % museum_title.replace('_', '')
 
 
-def remove_duplicates(dictionary):
-    result = {}
-    for key, value in dictionary.items():
-        if value not in result.values():
-            result[key] = value
-
-    return result
-
-
 def create_collections(collection_name, collection):
     with open('data/%s.json' % collection_name, 'w') as outfile:
-        json.dump(remove_duplicates(collection), outfile)
+        json.dump(collection, outfile)
 
 
 def preprocess_entities(museums_urls):
+    museum_titles = []
     museums = []
     hashtags = []
     locations = []
     succeeded = 0
     failed = 0
+    duplicated = 0
+    blacklisted = 0
+    nogeodata = 0
 
     for url in museums_urls:
         try:
             museum_title = get_wiki_title(url)
-
-            if check_blacklist(museum_title): continue
+            if museum_title in museum_titles:
+                duplicated += 1
+                print "[duplicated] processed entity: %s" % museum_title
+                continue
+            if check_blacklist(museum_title):
+                blacklisted += 1
+                print "[blacklisted] processed entity: %s" % museum_title
+                continue
             geo_data = get_geo_data(museum_title)
-            if geo_data['status'] == "ZERO_RESULTS": continue
+            if geo_data['status'] == "ZERO_RESULTS":
+                nogeodata += 1
+                print "[no geodata] processed entity: %s" % museum_title
+                continue
 
             # Add the results to the right collection
             museums.append({'id': museum_title, 'dbpedia': get_dbpedia_data(museum_title)})
             hashtags.append({'id': museum_title, 'hashtag': get_hashtag(museum_title)})
             locations.append({'id': museum_title, 'location': geo_data['results'][0]})
+            museum_titles.append(museum_title)
 
             succeeded += 1
-            print "processed entity: %s" % museum_title
+            print "[success] processed entity: %s" % museum_title
         except:
             failed += 1
             pass
@@ -110,7 +115,8 @@ def preprocess_entities(museums_urls):
     create_collections('hashtags', hashtags)
     create_collections('locations', locations)
 
-    print "Total %s entities, %s succeeded, %s failed." % (failed+succeeded, succeeded, failed)
+    print "Total %s entities, %s succeeded, %s failed, %s duplicated, %s blacklisted, %s no geodata." \
+          % (len(museums_urls), succeeded, failed, duplicated, blacklisted, nogeodata)
 
 
 if __name__ == '__main__':
