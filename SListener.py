@@ -42,7 +42,7 @@ class SListener(StreamListener):
                 self.counter = 0
 
         time.sleep(0.5)
-        print status
+        print status['text']
 
         return
 
