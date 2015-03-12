@@ -21,7 +21,7 @@ def main(mode=1):
     if len(sys.argv) != 2:
         print "please provide an offset and a limit (e.g. python streaming.py 0 350)"
 
-    track = get_hashtags(sys.argv[0],sys.argv[1])
+    track = get_hashtags(int(sys.argv[0]),int(sys.argv[1]))
     follow = []
 
     listen = SListener(api, 'museum', ou_type='mongo')
