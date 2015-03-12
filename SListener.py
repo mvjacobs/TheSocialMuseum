@@ -42,7 +42,8 @@ class SListener(StreamListener):
                 self.counter = 0
 
         time.sleep(0.5)
-        print status['text']
+        tweet = json.load(status)
+        print tweet['text']
 
         return
 
