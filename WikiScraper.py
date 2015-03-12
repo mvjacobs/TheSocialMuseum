@@ -7,10 +7,17 @@ import json
 import urllib2
 
 # scrape wikipedia page with a list of all museums in the Netherlands
-page = requests.get('http://nl.wikipedia.org/wiki/Lijst_van_musea_in_Nederland')
-tree = html.fromstring(page.text)
-museums_urls = tree.xpath('//div[@id="bodyContent"]/div[@id="mw-content-text"]'
-                          '/h3/following-sibling::ul/li/a[not(@rel="nofollow")]/@href')
+page1 = requests.get('http://nl.wikipedia.org/wiki/Lijst_van_musea_in_Nederland')
+tree1 = html.fromstring(page1.text)
+museums_urls1 = tree1.xpath('//div[@id="bodyContent"]/div[@id="mw-content-text"]'
+                            '/h3/following-sibling::ul/li/a[not(@rel="nofollow")]/@href')
+
+page2 = requests.get('http://nl.wikipedia.org/wiki/Lijst_van_musea_in_Amsterdam')
+tree2 = html.fromstring(page2.text)
+museums_urls2 = tree2.xpath('//div[@id="bodyContent"]/div[@id="mw-content-text"]'
+                            '/ul[1]/li/a[not(@rel="nofollow")]/@href')
+
+museums_urls = museums_urls2 + museums_urls1
 
 museums = []
 hashtags = []
@@ -27,7 +34,7 @@ for url in museums_urls:
 
         blacklist = [line.strip().lower() for line in open('config/blacklist.cfg')]
 
-        if not(museum_title.lower() in blacklist) and not(museum_title.startswith('Bezig')):
+        if not(museum_title.lower() in blacklist) or not(museum_title.startswith('Bezig')):
             dbpedia_page = 'http://nl.dbpedia.org/resource/' + museum_title
 
             # get geo information for museum
