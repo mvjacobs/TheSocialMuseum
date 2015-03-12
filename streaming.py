@@ -2,7 +2,7 @@ __author__ = 'marc'
 
 from SListener import SListener
 from pymongo import MongoClient
-import tweepy
+import tweepy, sys
 
 
 lines = [line.strip() for line in open('config/twitter.cfg')]
@@ -18,8 +18,10 @@ api = tweepy.API(auth)
 
 
 def main(mode=1):
-    track = get_hashtags()
-    #track = ["#nieuweverdeling"]
+    if len(sys.argv) != 2:
+        print "please provide an offset and a limit (e.g. python streaming.py 0 350)"
+
+    track = get_hashtags(sys.argv[0],sys.argv[1])
     follow = []
 
     listen = SListener(api, 'museum', ou_type='mongo')
@@ -34,11 +36,12 @@ def main(mode=1):
         stream.disconnect()
 
 
-def get_hashtags():
+def get_hashtags(offset, limit):
     client = MongoClient('localhost', 27017)
     db = client.museums
     collection = db.museum_hashtags
-    cursor = collection.find()
+
+    cursor = collection.find().skip(offset).limit(limit)
 
     hashtags = []
     for document in cursor:
