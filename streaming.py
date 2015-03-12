@@ -18,10 +18,11 @@ api = tweepy.API(auth)
 
 
 def main(mode=1):
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 3:
         print "please provide an offset and a limit (e.g. python streaming.py 0 350)"
+        exit()
 
-    track = get_hashtags(int(sys.argv[1]),int(sys.argv[2]))
+    track = get_hashtags(int(sys.argv[1]), int(sys.argv[2]))
     follow = []
 
     listen = SListener(api, 'museum', ou_type='mongo')
